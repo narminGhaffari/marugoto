@@ -9,10 +9,10 @@ This script is designed to process feature files and generate heatmaps using an 
 
 ### Example
 
-\`\`\`bash
+```bash
 python transformer_heatmap.py \
     --learner_path "/path/to/export.pkl" \
     --feature_name_pattern "/path/to/slide/features/*.h5" \
     --output_folder "path/to/store/output"
-\`\`\`
+```
 
