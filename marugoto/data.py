@@ -1,4 +1,5 @@
 """Helper classes to manage pytorch data."""
+
 import itertools
 from typing import Any, Callable, Sequence, Protocol, Union
 import warnings
@@ -80,7 +81,7 @@ class MapDataset(Dataset):
         self,
         func: Callable,
         *datasets: Union[npt.NDArray, Dataset],
-        strict: bool = True
+        strict: bool = True,
     ) -> None:
         """A dataset mapping over a function over other datasets.
 
@@ -119,8 +120,7 @@ class SKLearnEncoder(Protocol):
 
     categories_: Sequence[Sequence[str]]
 
-    def transform(self, x: Sequence[Sequence[Any]]):
-        ...
+    def transform(self, x: Sequence[Sequence[Any]]): ...
 
 
 class EncodedDataset(MapDataset):

@@ -47,8 +47,7 @@ def make_dataset(
         "feature models are deprecated and may be removed in the future.", FutureWarning
     )
 
-    assert len(bags) == len(
-        targets), "number of bags and ground truths does not match!"
+    assert len(bags) == len(targets), "number of bags and ground truths does not match!"
     tile_ds: ConcatDataset = ConcatDataset(
         H5TileDataset(h5, tile_no, seed=seed) for h5 in bags
     )
@@ -119,8 +118,7 @@ def add_coordinates(tile_score_slide_df):
     tile_score_slide_coords_df = pd.DataFrame()
     pat_list = tile_score_slide_df.PATIENT.unique()
     for patient in pat_list:
-        df_patient = tile_score_slide_df[tile_score_slide_df.PATIENT == patient].copy(
-        )
+        df_patient = tile_score_slide_df[tile_score_slide_df.PATIENT == patient].copy()
         slide_path = df_patient.slide_path.iloc[0]
         with h5py.File(slide_path, mode="r") as f:
             try:
@@ -131,7 +129,7 @@ def add_coordinates(tile_score_slide_df):
                 df_patient["x"] = None
                 df_patient["y"] = None
                 continue
-        #df_patient.drop(["slide_path"], axis=1, inplace=True)
+        # df_patient.drop(["slide_path"], axis=1, inplace=True)
 
         if tile_score_slide_coords_df.empty:
             tile_score_slide_coords_df = df_patient
@@ -173,8 +171,7 @@ def train(
     )
     print(type(target_enc))
     train_ds = make_dataset(target_enc, train_bags, train_targets, tile_no)
-    valid_ds = make_dataset(target_enc, valid_bags,
-                            valid_targets, tile_no, seed=0)
+    valid_ds = make_dataset(target_enc, valid_bags, valid_targets, tile_no, seed=0)
 
     # build dataloaders
     train_dl = DataLoader(
@@ -185,8 +182,7 @@ def train(
     )
     batch = train_dl.one_batch()
 
-    model = create_head(batch[0].shape[-1],
-                        batch[1].shape[-1], concat_pool=False)[1:]
+    model = create_head(batch[0].shape[-1], batch[1].shape[-1], concat_pool=False)[1:]
 
     # weigh inversely to class occurances
     counts = pd.value_counts(train_targets)
@@ -199,8 +195,7 @@ def train(
     loss_func = nn.CrossEntropyLoss(weight=weight)
 
     dls = DataLoaders(train_dl, valid_dl)
-    learn = Learner(dls, model, loss_func=loss_func,
-                    metrics=[RocAuc()], path=path)
+    learn = Learner(dls, model, loss_func=loss_func, metrics=[RocAuc()], path=path)
 
     cbs = [
         SaveModelCallback(monitor="roc_auc_score", fname=f"best_valid"),
@@ -286,8 +281,7 @@ def deploy(test_df, learn, target_label, tile_no: int = None):
         test_ds, batch_size=512, shuffle=False, num_workers=os.cpu_count()
     )
 
-    patient_preds, patient_targs = learn.get_preds(
-        dl=test_dl, act=nn.Softmax())
+    patient_preds, patient_targs = learn.get_preds(dl=test_dl, act=nn.Softmax())
 
     # create tile wise result dataframe
     tiles_per_slide = [len(ds) for ds in test_ds._datasets[0].datasets]
@@ -340,6 +334,6 @@ def deploy(test_df, learn, target_label, tile_no: int = None):
     patient_preds_df = patient_preds_df.sort_values(by="loss")
     if not tile_no:
         return patient_preds_df, tile_score_slide_coords_df
-    
+
     else:
         return patient_preds_df, tile_score_slide_df

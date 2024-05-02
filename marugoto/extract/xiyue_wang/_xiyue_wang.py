@@ -54,5 +54,5 @@ def extract_xiyuewang_features_(
         slide_tile_paths=slide_tile_paths,
         model=model.cuda(),
         model_name="xiyuewang-retcll-931956f3",
-        **kwargs
+        **kwargs,
     )

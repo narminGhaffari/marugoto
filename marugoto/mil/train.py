@@ -162,7 +162,7 @@ if __name__ == "__main__":
     with open(args.output_dir / "info.json", "w") as f:
         json.dump(info, f)
 
-    target_enc = OneHotEncoder(sparse=False).fit(categories.reshape(-1, 1))
+    target_enc = OneHotEncoder(sparse_output=False).fit(categories.reshape(-1, 1))
 
     add_features = []
     if args.cat_labels:

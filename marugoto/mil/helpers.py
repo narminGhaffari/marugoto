@@ -111,7 +111,7 @@ def train_categorical_model_(
     with open(output_path / "info.json", "w") as f:
         json.dump(info, f)
 
-    target_enc = OneHotEncoder(sparse=False).fit(categories.reshape(-1, 1))
+    target_enc = OneHotEncoder(sparse_output=False).fit(categories.reshape(-1, 1))
 
     add_features = []
     if cat_labels:
@@ -192,7 +192,7 @@ def _make_cat_enc(df: pd.DataFrame, cats: Iterable[str]) -> SKLearnEncoder:
         fitting_cats.append(non_na_samples)
     cat_samples = np.stack(fitting_cats, axis=1)
     cat_enc = make_pipeline(
-        OneHotEncoder(sparse=False, handle_unknown="ignore"),
+        OneHotEncoder(sparse_output=False, handle_unknown="ignore"),
         StandardScaler(),
     ).fit(cat_samples)
     return cat_enc
@@ -327,7 +327,7 @@ def categorical_crossval_(
         "overall": {k: int(v) for k, v in df[target_label].value_counts().items()}
     }
 
-    target_enc = OneHotEncoder(sparse=False).fit(categories.reshape(-1, 1))
+    target_enc = OneHotEncoder(sparse_output=False).fit(categories.reshape(-1, 1))
 
     if (fold_path := output_path / "folds.pt").exists():
         folds = torch.load(fold_path)

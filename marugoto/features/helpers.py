@@ -112,11 +112,11 @@ def train_categorical_model_(
         k: int(v) for k, v in valid_df[target_label].value_counts().items()
     }
 
-    target_enc = OneHotEncoder(sparse=False).fit(categories.reshape(-1, 1))
+    target_enc = OneHotEncoder(sparse_output=False).fit(categories.reshape(-1, 1))
 
     with open(output_path / "info.json", "w") as f:
         json.dump(info, f)
-    
+
     learn, patient_preds_df, tile_scores_df = train(
         target_enc=target_enc,
         train_bags=train_df.slide_path.values,
@@ -128,7 +128,7 @@ def train_categorical_model_(
         path=output_path,
         tile_no=tile_no,
     )
-  
+
     learn.export()
     patient_preds_df.to_csv(output_path / "patient-preds-validset.csv")
     tile_scores_df.to_csv(output_path / "tile-preds-validset.csv")
@@ -180,13 +180,14 @@ def deploy_categorical_model_(
     slide_df = pd.DataFrame(slides, columns=["slide_path"])
     slide_df["FILENAME"] = slide_df.slide_path.map(lambda p: p.stem)
     test_df = test_df.merge(slide_df, on="FILENAME")
-    
+
     patient_preds_df, tile_preds_df = deploy(
         test_df=test_df, learn=learn, target_label=target_label, tile_no=tile_no
     )
 
     patient_preds_df.to_csv(preds_csv, index=False)
     tile_preds_df.to_csv(output_path / "tile-preds.csv", index=False)
+
 
 def categorical_crossval_(
     clini_table: PathLike,
@@ -255,7 +256,7 @@ def categorical_crossval_(
         "overall": {k: int(v) for k, v in df[target_label].value_counts().items()}
     }
 
-    target_enc = OneHotEncoder(sparse=False).fit(categories.reshape(-1, 1))
+    target_enc = OneHotEncoder(sparse_output=False).fit(categories.reshape(-1, 1))
 
     if (fold_path := output_path / "folds.pt").exists():
         folds = torch.load(fold_path)
@@ -298,7 +299,7 @@ def categorical_crossval_(
         from marugoto.features import deploy
 
         fold_test_df = df.iloc[test_idxs]
-        patient_preds_df, tile_preds_df= deploy(
+        patient_preds_df, tile_preds_df = deploy(
             test_df=fold_test_df, learn=learn, target_label=target_label
         )
         patient_preds_df.to_csv(preds_csv, index=False)
@@ -330,7 +331,7 @@ def _crossval_train(*, fold_path, fold_df, fold, info, target_label, target_enc)
 
     from marugoto.features import train
 
-    learn, _, _= train(
+    learn, _, _ = train(
         target_enc=target_enc,
         train_bags=train_df.slide_path.values,
         train_targets=train_df[target_label].values,
