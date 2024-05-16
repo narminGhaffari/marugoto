@@ -6,7 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 from fastai.vision.all import (
     Learner, DataLoader, DataLoaders, RocAuc,
-    SaveModelCallback, CSVLogger)
+    SaveModelCallback, CSVLogger, EarlyStoppingCallback)
 import pandas as pd
 
 from data import SKLearnEncoder
@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from .data import make_dataset
 from .model import MILModel
 from loss import concordance_index, cox_loss
+from .ViT import ViT
 
 __all__ = ['train', 'deploy']
 
@@ -72,7 +73,9 @@ def train(
         num_workers=os.cpu_count())
     batch = train_dl.one_batch()
 
-    model = MILModel(batch[0].shape[-1], 1)
+    model = ViT(num_classes=1, input_dim=768)
+
+    #model = MILModel(batch[0].shape[-1], 1)
 
     # weigh inversely to class occurances
     # counts = pd.value_counts(targs[~valid_idxs])
@@ -85,11 +88,13 @@ def train(
     # loss_func = nn.CrossEntropyLoss(weight=weight)
     loss_func = cox_loss
     dls = DataLoaders(train_dl, valid_dl)
-    learn = Learner(dls, model, loss_func=loss_func,
+    learn = Learner(dls, model, loss_func=loss_func,lr=.0001, wd=0.01,
                     metrics=[concordance_index], path=path)
 
     cbs = [
         SaveModelCallback(fname=f'best_valid'),
+        EarlyStoppingCallback(monitor='valid_loss',
+                              min_delta=0.0000001, patience=8),
         CSVLogger()]
 
     if not lr_max:

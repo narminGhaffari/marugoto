@@ -84,6 +84,7 @@ def train(
         list(map(weight.get, target_enc.categories_[0])), dtype=torch.float32
     )
     loss_func = nn.CrossEntropyLoss(weight=weight)
+    #loss_func = cox_loss
 
     dls = DataLoaders(train_dl, valid_dl)
     learn = Learner(dls, model, loss_func=loss_func, metrics=[RocAuc()], path=path)

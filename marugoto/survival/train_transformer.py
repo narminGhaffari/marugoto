@@ -4,11 +4,10 @@ import pandas as pd
 import torch
 import logging
 import argparse
+import sys
 from torch import optim
 from pathlib import Path
 from fastai.data.load import DataLoader
-#from mil.model import MILModel
-from mil.transformer import Transformer
 from mil.ViT import ViT
 from Early_Stopping import EarlyStopping
 from loss import cox_loss, concordance_index
@@ -21,17 +20,16 @@ parser.add_argument('-st', '--slide_table', type=Path, required=True, help='slid
 parser.add_argument('-f', '--feature_dir', type=Path, required=True, help='feature_dir')
 parser.add_argument('-o', '--output_path', type=Path, required=True, help='output_path')
 parser.add_argument('-t', '--target_label', nargs='+', type=str, required=True, help='target_label, e.g., [os, os_e]')
-parser.add_argument('-bs', '--batch_size', default=64, type=int, help='batch_size')
-parser.add_argument('-nw', '--num_workers', default=8, type=int, help='num_workers')
+parser.add_argument('-bs', '--batch_size', default=2, type=int, help='batch_size')
+parser.add_argument('-nw', '--num_workers', default=16, type=int, help='num_workers')
 parser.add_argument('-ep', '--epochs', default=100, type=int, help='epochs')
 parser.add_argument('-lr', '--lr', default=1e-5, type=float, help='lr')
 parser.add_argument('-bgs', '--bag_size', default=512, type=int, help='bag_size')
 parser.add_argument('-l1', '--l1_reg', default=1e-3, type=float, help='l1_reg')
 parser.add_argument('-l2', '--l2_reg', default=1e-3, type=float, help='l2_reg')
-
+parser.add_argument('-pool', '--pooling', default='cls', type=float, help='pooling techniques, either cls or mean')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def get_logger(filename, verbosity=1, name=None):
     level_dict = {0: logging.DEBUG, 1: logging.INFO, 2: logging.WARNING}
@@ -65,16 +63,20 @@ def get_table(clini_excel, slide_csv, feature_dir, target_label, output_path):
         train_patients = pd.read_csv(output_path / 'train.csv').PATIENT
         valid_patients = pd.read_csv(output_path / 'valid.csv').PATIENT
     else:
-        train_patients, valid_patients = train_test_split(df.PATIENT, test_size=0.3)
-
+        train_patients, test_patients = train_test_split(df.PATIENT, test_size=0.2)
         train_df = df[df.PATIENT.isin(train_patients)]
+        train_patients, valid_patients = train_test_split(train_df.PATIENT, test_size=0.5)
+
+        train_df = df[df.PATIENT.isin(train_patients)] ## Idea is to split data 40/40/20 (Train/Valid/Test)
         valid_df = df[df.PATIENT.isin(valid_patients)]
+        test_df = df[df.PATIENT.isin(test_patients)]
 
         print(f'train:{len(train_df)}')
         print(f'valid:{len(valid_df)}')
-
+        print(f'test:{len(test_df)}')
         train_df.drop(columns='slide_path').to_csv(output_path / 'train.csv', index=False)
         valid_df.drop(columns='slide_path').to_csv(output_path / 'valid.csv', index=False)
+        test_df.drop(columns='slide_path').to_csv(output_path / 'test.csv', index=False)
     return df, train_patients, valid_patients, test_patients
 
 
@@ -164,7 +166,6 @@ def train(epochs, model, train_dl, device, criterion, train_dl_v, valid_dl, logg
             logger.info(f'valid ci_{key}: {valid_ci_dict[key]}')
         logger.info('--------------------------------')
 
-
 if __name__ == '__main__':
     args = parser.parse_args()
     clini_excel = args.clinical_table
@@ -183,15 +184,16 @@ if __name__ == '__main__':
     bag_size = args.bag_size
     l1 = args.l1_reg
     l2 = args.l2_reg
+    pool = args.pooling
 
-    model_save_path = output_path / f'lr_{lr}_l1_{l1}_l2_{l2}_best_model.pth'
+    model_save_path = output_path / f'lr_{lr}_l1_{l1}_l2_{l2}_pool{pool}best_model.pth'
 
     feature_dir = Path(feature_dir)
     output_path = Path(output_path)
     output_path.mkdir(exist_ok=True, parents=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
 
-    DACHS = True
     df, train_patients, valid_patients, test_patients = get_table(clini_excel, slide_csv, feature_dir, target_label,
                                                                   output_path)
 
@@ -207,7 +209,6 @@ if __name__ == '__main__':
     logger.info(f'lr:{lr}')
     logger.info(f'train size:{np.sum(train_idx != 0)}')
     logger.info(f'valid size:{np.sum(valid_idxs != 0)}')
-    logger.info(f'DACHS:{DACHS}')
     logger.info(f'l1 lambda:{l1}')
     logger.info(f'l2 lambda:{l2}')
 
@@ -253,8 +254,7 @@ if __name__ == '__main__':
 
     batch = train_dl.one_batch()
 
-    #model = MILModel(batch[0].shape[-1], 1)
-    model = ViT(num_classes=1, input_dim=768)
+    model = ViT(num_classes=1, input_dim=1024, pool=pool) # For cTranspath features change input_dim=768
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     model = model.to(device)
 
     early_stopping = EarlyStopping(model_path=model_save_path,
-                                   patience=10, verbose=True)
+                                   patience=15, verbose=True)
 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 10, gamma=0.1, last_epoch=-1)
 

@@ -13,6 +13,10 @@ from . import data
 from . import helpers
 from . import model
 
+# Adding these as well
+from . import transformer
+from . import ViT
+
 __author__ = 'Marko van Treeck'
 __copyright__ = 'Copyright 2022, Kather Lab'
 __license__ = 'MIT'

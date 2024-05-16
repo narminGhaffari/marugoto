@@ -5,7 +5,7 @@ Welcome to the survival prediction branch of Marugoto! This branch introduces so
 ## Example Commands
 ### Train
 ```
-python train.py \
+python train_transformer.py \
 -ct /path/to/clinical_table.csv \
 -st /path/to/slide_table.csv \
 -o /path/to/output_location \
@@ -14,7 +14,7 @@ python train.py \
 ```
 ### Deploy
 ```
-python eval.py \
+python eval_transformer.py \
 -ct /path/to/clinical_table.csv \
 -st /path/to/clinical_slide_table.xlsx \
 -o /path/to/eval_results \
