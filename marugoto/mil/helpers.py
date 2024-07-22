@@ -241,7 +241,7 @@ def categorical_crossval_(
     else:
         #added shuffling with seed 1337
         if binary_label is None:
-            skf = KFold(n_splits=n_splits, shuffle=True, random_state=1337)
+            skf = KFold(n_splits=n_splits, shuffle=True, random_state=23)
             patient_df = df.groupby('PATIENT').first().reset_index()
             folds = tuple(skf.split(patient_df.PATIENT, patient_df[target_label])) # patient_df['SITE_CODE'])) with stratified potentially
             torch.save(folds, fold_path)
@@ -324,7 +324,7 @@ def categorical_crossval_(
                 # breakpoint()
                 
             else:
-                skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1337)
+                skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=23)
                 patient_df = df.groupby('PATIENT').first().reset_index()
                 folds = tuple(skf.split(patient_df.PATIENT, patient_df[binary_label])) # patient_df['SITE_CODE'])) with stratified potentially
             torch.save(folds, fold_path)          
@@ -397,10 +397,10 @@ def _crossval_train(
     #added stratification at train_test_split
     if binary_label is not None:
         train_patients, valid_patients = train_test_split(
-            fold_df.PATIENT, stratify=fold_df[binary_label], random_state=1337)
+            fold_df.PATIENT, stratify=fold_df[binary_label], random_state=23)
     else:
         train_patients, valid_patients = train_test_split(
-            fold_df.PATIENT, random_state=1337)
+            fold_df.PATIENT, random_state=23)
     train_df = fold_df[fold_df.PATIENT.isin(train_patients)]
     valid_df = fold_df[fold_df.PATIENT.isin(valid_patients)]
     train_df.drop(columns='slide_path').to_csv(fold_path/'train.csv', index=False)

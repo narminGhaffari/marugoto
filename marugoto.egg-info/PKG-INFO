@@ -1,0 +1,123 @@
+Metadata-Version: 2.1
+Name: marugoto
+Version: 0.8.0
+Summary: A toolbox for building deep learning workflows.
+Home-page: https://github.com/KatherLab/marugoto
+Author: Marko van Treeck
+Author-email: mvantreeck@ukaachen.de
+Project-URL: Bug Tracker, https://github.com/KatherLab/marugoto/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: h5py<4,>=3.6.0
+Requires-Dist: numpy<2,>=1.22.1
+Requires-Dist: pandas<2,>=1.4.0
+Requires-Dist: torch<2,>=1.8.3
+Requires-Dist: fastai<3,>=2.5.3
+Requires-Dist: fire<0.5,>=0.4.0
+Requires-Dist: seaborn
+
+# Regression まるごと—A Toolbox for Building Deep Learning Regression Workflows ##
+
+This repo has been adapted from the main Marugoto pipeline which only allowed classification problems, now allowing for attention-based multiple instance learning regression.
+
+
+Note: for more information regarding setting up marugoto on your system and file management for your project, see [documentation](https://github.com/KatherLab/marugoto/blob/main/Documentation.md).
+
+## Feature extraction
+Download best_ckpt.pth from latest Xiyue Wang:
+https://drive.google.com/drive/folders/1AhstAFVqtTqxeS9WlBpU41BV08LYFUnL
+    
+    python -m marugoto.extract.xiyue_wang \
+        --checkpoint-path ~/Downloads/best_ckpt.pth \
+        --outdir ~/TCGA_features/TCGA-CRC-DX-features/xiyue-wang \
+        /mnt/TCGA_BLOCKS/TCGA-CRC-DX-BLOCKS/*
+
+## Tile-Wise Training and Deployment ##
+
+### Train a Neural Network on Pre-Extracted Features ###
+
+    python -m marugoto.features train \
+        --clini-excel tcga-crc-dx/TCGA-CRC-DX_CLINI.xlsx \
+        --slide-csv tcga-crc-dx/TCGA-CRC-DX_SLIDE.csv \
+        --feature-dir tcga-crc-dx/features_norm_macenko_h5 \
+        --target-label isMSIH \
+        --output-path output/path
+
+### Deploy a Model on Another Cohort ###
+
+    python -m marugoto.features deploy \
+        --clini-excel tcga-crc-dx/TCGA-CRC-DX_CLINI.xlsx \
+        --slide-csv tcga-crc-dx/TCGA-CRC-DX_SLIDE.csv \
+        --feature-dir tcga-crc-dx/features_norm_macenko_h5 \
+        --target-label isMSIH \
+        --model-path training-dir/export.pkl \
+        --output-path output/path
+
+### Cross-Validate a Model ###
+
+    python -m marugoto.features crossval \
+        --clini-excel tcga-crc-dx/TCGA-CRC-DX_CLINI.xlsx \
+        --slide-csv tcga-crc-dx/TCGA-CRC-DX_SLIDE.csv \
+        --feature-dir tcga-crc-dx/features_norm_macenko_h5 \
+        --target-label isMSIH \
+        --output-path output/path \
+        --n-splits 5
+
+## Attention-Based Multiple Instance Learning ##
+
+### Train a Neural Network on Pre-Extracted Features ###
+
+    python -m marugoto.mil train \
+        --clini-excel tcga-crc-dx/TCGA-CRC-DX_CLINI.xlsx \
+        --slide-csv tcga-crc-dx/TCGA-CRC-DX_SLIDE.csv \
+        --feature-dir tcga-crc-dx/features_norm_macenko_h5 \
+        --target-label isMSIH \
+        --output-path output/path
+
+### Deploy a Model on Another Cohort ###
+
+    python -m marugoto.mil deploy \
+        --clini-excel tcga-crc-dx/TCGA-CRC-DX_CLINI.xlsx \
+        --slide-csv tcga-crc-dx/TCGA-CRC-DX_SLIDE.csv \
+        --feature-dir tcga-crc-dx/features_norm_macenko_h5 \
+        --target-label isMSIH \
+        --model-path training-dir/export.pkl \
+        --output-path output/path
+
+### Cross-Validate a Model ###
+
+    python -m marugoto.mil crossval \
+        --clini-excel tcga-crc-dx/TCGA-CRC-DX_CLINI.xlsx \
+        --slide-csv tcga-crc-dx/TCGA-CRC-DX_SLIDE.csv \
+        --feature-dir tcga-crc-dx/features_norm_macenko_h5 \
+        --target-label isMSIH \
+        --output-path output/path \
+        --n-splits 5
+
+## Calculate Statistics for Categorical Deployments ##
+
+    python -m marugoto.stats.categorical \
+        deployment/path/fold-*/patient-preds.csv \
+        --outpath output/path \
+        --target-label isMSIH \
+        --true-label MSIH
+
+## Plot ROC Curve ##
+
+    python -m marugoto.visualizations.roc  \
+        deployment/path/fold-*/patient-preds.csv \
+        --outpath output/path \
+        --target-label isMSIH \
+        --true-label MSIH
+
+## Plot Precision Recall Curve ##
+
+    python -m marugoto.visualizations.prc  \
+        deployment/path/fold-*/patient-preds.csv \
+        --outpath output/path \
+        --target-label isMSIH \
+        --true-label MSIH

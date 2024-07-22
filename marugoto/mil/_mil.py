@@ -53,8 +53,8 @@ def train(
     targets: np.ndarray,
     add_features: Iterable[Tuple[FunctionTransformer, Sequence[Any]]] = [],
     valid_idxs: np.ndarray,
-    n_epoch: int = 25, #32
-    patience: int = 8,
+    n_epoch: int = 100, #32
+    patience: int = 20,
     path: Optional[Path] = None,
 ) -> Learner:
     """Train a MLP on image features.
